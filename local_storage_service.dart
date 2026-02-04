@@ -1,6 +1,9 @@
 import 'dart:io';
+import 'dart:typed_data';
+import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalStorageService {
   static Future<String> saveImageFile(File imageFile) async {
@@ -72,6 +75,55 @@ class LocalStorageService {
       }
     } catch (e) {
       throw Exception('Failed to delete PDF file: $e');
+    }
+  }
+
+  // ******** Web / Chrome specific helpers (existing methods remain unchanged) ********
+
+  static Future<String> saveImageBytesWeb(Uint8List bytes) async {
+    try {
+      final String key = 'web_image_${DateTime.now().millisecondsSinceEpoch}';
+      final String base64Data = base64Encode(bytes);
+
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString(key, base64Data);
+
+      // Key can be stored/sent as a reference in place of a file path
+      return key;
+    } catch (e) {
+      throw Exception('Failed to save web image bytes: $e');
+    }
+  }
+
+  static Future<String> savePdfBytesWeb(Uint8List bytes) async {
+    try {
+      final String key = 'web_pdf_${DateTime.now().millisecondsSinceEpoch}';
+      final String base64Data = base64Encode(bytes);
+
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString(key, base64Data);
+
+      return key;
+    } catch (e) {
+      throw Exception('Failed to save web PDF bytes: $e');
+    }
+  }
+
+  static Future<void> deleteImageBytesWeb(String key) async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.remove(key);
+    } catch (e) {
+      throw Exception('Failed to delete web image bytes: $e');
+    }
+  }
+
+  static Future<void> deletePdfBytesWeb(String key) async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.remove(key);
+    } catch (e) {
+      throw Exception('Failed to delete web PDF bytes: $e');
     }
   }
 }
