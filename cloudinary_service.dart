@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:cloudinary_public/cloudinary_public.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
@@ -215,6 +216,99 @@ class CloudinaryService {
       }
     } catch (e) {
       throw Exception('Failed to upload PDF via HTTP: $e');
+    }
+  }
+
+  /// Upload image bytes (Uint8List) to Cloudinary for web platform
+  static Future<String> uploadImageBytesWeb(Uint8List imageBytes, {String? filename}) async {
+    try {
+      // Create multipart request
+      final uri = Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/image/upload');
+      final request = http.MultipartRequest('POST', uri);
+      
+      // Generate filename if not provided
+      final String fileName = filename ?? 'image_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      
+      // Add file to request
+      final multipartFile = http.MultipartFile.fromBytes(
+        'file',
+        imageBytes,
+        filename: fileName,
+      );
+      
+      request.files.add(multipartFile);
+      request.fields['upload_preset'] = uploadPreset;
+      request.fields['folder'] = 'flower_app/images';
+      
+      // Send request
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+      
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(responseBody);
+        return jsonResponse['secure_url'];
+      } else {
+        throw Exception('Upload failed with status: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Failed to upload image bytes to Cloudinary: $e');
+    }
+  }
+
+  /// Upload PDF bytes (Uint8List) to Cloudinary for web platform
+  static Future<String> uploadPdfBytesWeb(Uint8List pdfBytes, {String? filename}) async {
+    try {
+      // Create multipart request
+      final uri = Uri.parse('https://api.cloudinary.com/v1_1/$cloudName/raw/upload');
+      final request = http.MultipartRequest('POST', uri);
+      
+      // Generate filename if not provided
+      final String fileName = filename ?? 'pdf_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      
+      // Add file to request
+      final multipartFile = http.MultipartFile.fromBytes(
+        'file',
+        pdfBytes,
+        filename: fileName,
+      );
+      
+      request.files.add(multipartFile);
+      request.fields['upload_preset'] = uploadPreset;
+      request.fields['folder'] = 'flower_app/pdfs';
+      request.fields['resource_type'] = 'raw';
+      
+      // Send request
+      final response = await request.send();
+      final responseBody = await response.stream.bytesToString();
+      
+      if (response.statusCode == 200) {
+        final jsonResponse = jsonDecode(responseBody);
+        return jsonResponse['secure_url'];
+      } else {
+        throw Exception('Upload failed with status: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Failed to upload PDF bytes to Cloudinary: $e');
+    }
+  }
+
+  /// Delete image from Cloudinary using URL (for web cleanup)
+  static Future<void> deleteImageBytesWeb(String imageUrl) async {
+    try {
+      await deleteImageFile(imageUrl);
+    } catch (e) {
+      // Log error but don't throw to avoid breaking app flow
+      print('Warning: Failed to delete image from Cloudinary: $e');
+    }
+  }
+
+  /// Delete PDF from Cloudinary using URL (for web cleanup)
+  static Future<void> deletePdfBytesWeb(String pdfUrl) async {
+    try {
+      await deletePdfFile(pdfUrl);
+    } catch (e) {
+      // Log error but don't throw to avoid breaking app flow
+      print('Warning: Failed to delete PDF from Cloudinary: $e');
     }
   }
 }
